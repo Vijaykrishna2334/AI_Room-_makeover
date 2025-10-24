@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Comparison Slider - External</title>
+    <style>
+        /* CSS Styles */
+        *, *::after, *::before { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #f0f0f0; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .container { position: relative; overflow: hidden; width: 80vw; max-width: 900px; --position: 50%; --aspect-ratio: 16/9; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); border-radius: 8px; }
+        .image-container { aspect-ratio: var(--aspect-ratio); display: grid; }
+        .slider-image { grid-area: 1/1; width: 100%; height: 100%; object-fit: cover; user-select: none; }
+        .image-after { clip-path: inset(0 0 0 var(--position)); }
+        .slider-line { position: absolute; top: 0; bottom: 0; left: var(--position); width: 2px; background-color: #fff; box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); transform: translateX(-50%); pointer-events: none; z-index: 20; }
+        .slider-button { position: absolute; top: 50%; left: var(--position); width: 40px; height: 40px; background-color: #fff; border: 4px solid #000; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 30; display: flex; align-items: center; justify-content: center; cursor: grab; }
+        .slider-button::after { content: '↔'; font-size: 16px; color: #000; line-height: 1; }
+        .slider { position: absolute; top: 0; left: 0; width: 100%; height: 100%; cursor: grab; opacity: 0; z-index: 40; }
+    </style>
+</head>
+<body>
+    <h1>n8n Image Comparison Tool</h1>
+    <p>Viewing images processed by the workflow.</p>
+
+    <main>
+        <div class="container">
+            <div class="image-container">
+                <img class="image-before slider-image image-1" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Before Image">
+                <img class="image-after slider-image image-2" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="After Image">
+            </div>
+            <input type="range" min="0" max="100" value="50" aria-label="Percentage of before photo shown" class="slider">
+            <div class="slider-line" aria-hidden="true"></div>
+            <div class="slider-button" aria-hidden="true"></div>
+        </div>
+    </main>
+
+    <script>
+        // Function to parse URL query parameters
+        function getQueryParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Sets the aspect ratio of the container based on the loaded image
+        function setAspectRatio(imageElement) {
+            const container = document.querySelector('.container');
+            if (imageElement.naturalWidth && imageElement.naturalHeight) {
+                const aspectRatioString = `${imageElement.naturalWidth}/${imageElement.naturalHeight}`;
+                container.style.setProperty('--aspect-ratio', aspectRatioString);
+                container.style.setProperty('--position', '50%'); // Reset position
+            }
+        }
+
+        function initializeSlider() {
+            const slider = document.querySelector('.slider');
+            const container = document.querySelector('.container');
+            const imageBefore = document.querySelector('.image-before');
+            const imageAfter = document.querySelector('.image-after');
+
+            const beforeUrl = getQueryParameter('before');
+            const afterUrl = getQueryParameter('after');
+
+            // 1. Set the image sources from the URL
+            if (beforeUrl && afterUrl) {
+                imageBefore.src = beforeUrl;
+                imageAfter.src = afterUrl;
+
+                // 2. WAIT FOR THE BEFORE IMAGE TO LOAD
+                // The slider depends on the dimensions of the base image.
+                imageBefore.onload = () => {
+                    setAspectRatio(imageBefore); // Sets aspect ratio and initial position
+                    
+                    // 3. Attach slider event listener only after image is ready
+                    slider.addEventListener('input', function (e) {
+                        container.style.setProperty('--position', e.target.value + '%');
+                    });
+                    console.log('Slider initialized successfully.');
+                };
+
+                // Handle load error
+                imageBefore.onerror = () => {
+                    console.error("Failed to load 'before' image. Check URL and public access permissions.");
+                };
+            } else {
+                console.error("Missing 'before' or 'after' URL parameters.");
+                // Optional: Display an error message to the user in the HTML body
+            }
+            
+            // Initial position fallback (important for visibility before load)
+            container.style.setProperty('--position', '50%');
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeSlider);
+    </script>
+</body>
+</html>
